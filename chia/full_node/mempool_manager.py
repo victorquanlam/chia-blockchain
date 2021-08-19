@@ -28,7 +28,7 @@ from chia.types.mempool_item import MempoolItem
 from chia.types.spend_bundle import SpendBundle
 from chia.util.clvm import int_from_bytes
 from chia.util.condition_tools import (
-    pkm_pairs_for_conditions_dict,
+    pkm_pairs,
     coin_announcements_names_for_npc,
     puzzle_announcements_names_for_npc,
 )
@@ -415,14 +415,11 @@ class MempoolManager:
                     return uint64(cost), MempoolInclusionStatus.PENDING, error
                 break
 
-            if validate_signature:
-                for pk, message in pkm_pairs_for_conditions_dict(
-                    npc.condition_dict, npc.coin_name, self.constants.AGG_SIG_ME_ADDITIONAL_DATA
-                ):
-                    pks.append(pk)
-                    msgs.append(message)
         if error:
             return None, MempoolInclusionStatus.FAILED, error
+
+        if validate_signature:
+            pks, msgs = pkm_pairs(npc_list, self.constants.AGG_SIG_ME_ADDITIONAL_DATA)
 
         if validate_signature:
             # Verify aggregated signature
