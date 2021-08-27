@@ -5,9 +5,10 @@ from chia.util.file_keyring import FileKeyring
 from chia.util.misc import prompt_yes_no
 from keyrings.cryptfile.cryptfile import CryptFileKeyring  # pyright: reportMissingImports=false
 from keyring.backends.macOS import Keyring as MacKeyring
+from keyring.backends.Windows import WinVaultKeyring as Win32Keyring
 from pathlib import Path
 from sys import exit, platform
-from typing import Any, Optional, Tuple, Union
+from typing import Any, Optional, Tuple, Type, Union
 
 
 # We want to protect the keyring, even if a user-specified master passphrase isn't provided
@@ -335,11 +336,28 @@ class KeyringWrapper:
 
     def confirm_legacy_keyring_cleanup(self, legacy_keyring, service, users):
         """
-        Ask the user whether we should remove keys from the legacy keyring. We can't just
-        delete the file because other python processes might use the same keyring file.
+        Ask the user whether we should remove keys from the legacy keyring. In the case
+        of CryptFileKeyring, we can't just delete the file because other python processes
+        might use the same keyring file.
         """
 
-        response = prompt_yes_no(f"Remove keys from old keyring ({str(legacy_keyring.file_path)})? (y/n) ")
+        keyring_name: str = ""
+        legacy_keyring_type: Type = type(legacy_keyring)
+
+        if legacy_keyring_type is CryptFileKeyring:
+            keyring_name = str(legacy_keyring.file_path)
+        elif legacy_keyring_type is MacKeyring:
+            keyring_name = "macOS Keychain"
+        elif legacy_keyring_type is Win32Keyring:
+            keyring_name = "Windows Credential Manager"
+
+        prompt = "Remove keys from old keyring"
+        if len(keyring_name) > 0:
+            prompt += f" ({keyring_name})?"
+        else:
+            prompt += "?"
+        prompt += " (y/n) "
+        response = prompt_yes_no(prompt)
 
         if response:
             for user in users:
@@ -347,9 +365,6 @@ class KeyringWrapper:
             print("Removed keys from old keyring")
         else:
             print("Keys in old keyring left intact")
-
-        # TODO: CryptFileKeyring doesn't cleanup section headers
-        # [chia_2Duser_2Dchia_2D1_2E8] is left behind
 
     # Keyring interface
 
