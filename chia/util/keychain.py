@@ -203,6 +203,13 @@ def default_keychain_service() -> str:
     return DEFAULT_SERVICE
 
 
+def get_private_key_user(user: str, index: int) -> str:
+    """
+    Returns the keychain user string for a key index.
+    """
+    return f"wallet-{user}-{index}"
+
+
 class Keychain:
     """
     The keychain stores two types of keys: private keys, which are PrivateKeys from blspy,
@@ -235,19 +242,13 @@ class Keychain:
             str_bytes[G1Element.SIZE :],  # flake8: noqa
         )
 
-    def _get_private_key_user(self, index: int) -> str:
-        """
-        Returns the keychain user string for a key index.
-        """
-        return f"wallet-{self.user}-{index}"
-
     def _get_free_private_key_index(self) -> int:
         """
         Get the index of the first free spot in the keychain.
         """
         index = 0
         while True:
-            pk = self._get_private_key_user(index)
+            pk = get_private_key_user(self.user, index)
             pkent = self._get_pk_and_entropy(pk)
             if pkent is None:
                 return index
@@ -272,7 +273,7 @@ class Keychain:
 
         self.keyring_wrapper.set_passphrase(
             self.service,
-            self._get_private_key_user(index),
+            get_private_key_user(self.user, index),
             bytes(key.get_g1()).hex() + entropy.hex(),
         )
         return key
@@ -282,7 +283,7 @@ class Keychain:
         Returns the first key in the keychain that has one of the passed in passphrases.
         """
         index = 0
-        pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+        pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         while index <= MAX_KEYS:
             if pkent is not None:
                 pk, ent = pkent
@@ -293,7 +294,7 @@ class Keychain:
                     if key.get_g1() == pk:
                         return (key, ent)
             index += 1
-            pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+            pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         return None
 
     def get_private_key_by_fingerprint(
@@ -303,7 +304,7 @@ class Keychain:
         Return first private key which have the given public key fingerprint.
         """
         index = 0
-        pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+        pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         while index <= MAX_KEYS:
             if pkent is not None:
                 pk, ent = pkent
@@ -314,7 +315,7 @@ class Keychain:
                     if pk.get_fingerprint() == fingerprint:
                         return (key, ent)
             index += 1
-            pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+            pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         return None
 
     def get_all_private_keys(self, passphrases: List[str] = [""]) -> List[Tuple[PrivateKey, bytes]]:
@@ -325,7 +326,7 @@ class Keychain:
         all_keys: List[Tuple[PrivateKey, bytes]] = []
 
         index = 0
-        pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+        pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         while index <= MAX_KEYS:
             if pkent is not None:
                 pk, ent = pkent
@@ -336,7 +337,7 @@ class Keychain:
                     if key.get_g1() == pk:
                         all_keys.append((key, ent))
             index += 1
-            pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+            pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         return all_keys
 
     def get_all_public_keys(self) -> List[G1Element]:
@@ -346,13 +347,13 @@ class Keychain:
         all_keys: List[Tuple[G1Element, bytes]] = []
 
         index = 0
-        pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+        pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         while index <= MAX_KEYS:
             if pkent is not None:
                 pk, ent = pkent
                 all_keys.append(pk)
             index += 1
-            pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+            pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         return all_keys
 
     def get_first_public_key(self) -> Optional[G1Element]:
@@ -360,13 +361,13 @@ class Keychain:
         Returns the first public key.
         """
         index = 0
-        pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+        pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         while index <= MAX_KEYS:
             if pkent is not None:
                 pk, ent = pkent
                 return pk
             index += 1
-            pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+            pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         return None
 
     def delete_key_by_fingerprint(self, fingerprint: int):
@@ -375,14 +376,14 @@ class Keychain:
         """
 
         index = 0
-        pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+        pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
         while index <= MAX_KEYS:
             if pkent is not None:
                 pk, ent = pkent
                 if pk.get_fingerprint() == fingerprint:
-                    self.keyring_wrapper.delete_passphrase(self.service, self._get_private_key_user(index))
+                    self.keyring_wrapper.delete_passphrase(self.service, get_private_key_user(self.user, index))
             index += 1
-            pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
+            pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
 
     def delete_all_keys(self):
         """
@@ -394,8 +395,8 @@ class Keychain:
         pkent = None
         while True:
             try:
-                pkent = self._get_pk_and_entropy(self._get_private_key_user(index))
-                self.keyring_wrapper.delete_passphrase(self.service, self._get_private_key_user(index))
+                pkent = self._get_pk_and_entropy(get_private_key_user(self.user, index))
+                self.keyring_wrapper.delete_passphrase(self.service, get_private_key_user(self.user, index))
             except Exception:
                 # Some platforms might throw on no existing key
                 delete_exception = True
@@ -411,9 +412,9 @@ class Keychain:
         while True:
             try:
                 pkent = self._get_pk_and_entropy(
-                    self._get_private_key_user(index)
+                    get_private_key_user(self.user, index)
                 )  # changed from _get_fingerprint_and_entropy to _get_pk_and_entropy - GH
-                self.keyring_wrapper.delete_passphrase(self.service, self._get_private_key_user(index))
+                self.keyring_wrapper.delete_passphrase(self.service, get_private_key_user(self.user, index))
             except Exception:
                 # Some platforms might throw on no existing key
                 delete_exception = True
