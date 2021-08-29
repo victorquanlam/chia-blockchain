@@ -992,6 +992,9 @@ class Timelord:
                         if self.server is not None:
                             message = make_msg(ProtocolMessageTypes.respond_compact_proof_of_time, response)
                             await self.server.send_to_all([message], NodeType.FULL_NODE)
+                            log.info(f"Send proof to all complete. Height is {str(height)}")
+                        else:
+                            log.info("No server, unable to send proof")
         except ConnectionResetError as e:
             log.debug(f"Connection reset with VDF client {e}")
 
