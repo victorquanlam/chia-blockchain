@@ -1266,7 +1266,9 @@ class FullNodeAPI:
 
     @api_request
     async def respond_compact_proof_of_time(self, request: timelord_protocol.RespondCompactProofOfTime):
+        self.log.info("respond_compact_proof_of_time")
         if self.full_node.sync_store.get_sync_mode():
+            self.log.info("respond_compact_proof_of_time: get_sync_mode was true")
             return None
         await self.full_node.respond_compact_proof_of_time(request)
 

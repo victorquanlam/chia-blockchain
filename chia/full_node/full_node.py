@@ -1813,12 +1813,14 @@ class FullNode:
         if not await self._can_accept_compact_proof(
             request.vdf_info, request.vdf_proof, request.height, request.header_hash, field_vdf
         ):
+            self.log.error(f"can not accept compact proof: {request.height}")
             return None
         async with self.blockchain.compact_proof_lock:
             replaced = await self._replace_proof(request.vdf_info, request.vdf_proof, request.height, field_vdf)
         if not replaced:
             self.log.error(f"Could not replace compact proof: {request.height}")
             return None
+        self.log.info(f"Replaced compact proof at height {request.height}")
         msg = make_msg(
             ProtocolMessageTypes.new_compact_vdf,
             full_node_protocol.NewCompactVDF(request.height, request.header_hash, request.field_vdf, request.vdf_info),
