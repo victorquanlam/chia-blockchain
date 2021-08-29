@@ -2003,9 +2003,7 @@ class FullNode:
                     if batches_finished % 10 == 0:
                         await asyncio.sleep(1)
 
-                # sample work randomly from the uncompact blocks we found
                 if len(broadcast_list) > target_uncompact_proofs:
-                    random.shuffle(broadcast_list)
                     broadcast_list = broadcast_list[:target_uncompact_proofs]
                 if self.sync_store.get_sync_mode():
                     continue
